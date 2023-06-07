@@ -11,8 +11,8 @@ RUN apt-get update && apt-get upgrade -y \
 
 RUN mkdir -p /etc/envoy
 
+# higress envoy binary
 ADD envoy /usr/local/bin/envoy
-ADD envoy.yaml /etc/envoy/envoy.yaml
 
 RUN apt-get update && apt-get install python3-pip -y \
     && apt-get autoremove -y && apt-get clean \
