@@ -1,0 +1,105 @@
+node:
+  cluster: test-cluster
+  id: test-idn
+
+admin:
+  address:
+    socket_address:
+      protocol: TCP
+      address: 0.0.0.0
+      port_value: 9901
+
+# dynamic_resources:
+#   lds_config:
+#     resource_api_version: V3
+#     path: ./lds.yml
+
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address:
+        protocol: TCP
+        address: 0.0.0.0
+        port_value: 8080
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          scheme_header_transformation:
+            scheme_to_overwrite: https
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: httpbin
+          http_filters:
+          - name: ip_deny
+            config_discovery:
+              config_source:
+                path: /conf/ip_deny.yaml
+                resource_api_version: V3
+              apply_default_config_without_warming: true
+              default_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+              type_urls:
+              - type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+              - type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+          - name: cc_deny
+            config_discovery:
+              config_source:
+                path: /conf/cc_deny.yaml
+                resource_api_version: V3
+              apply_default_config_without_warming: true
+              default_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+              type_urls:
+              - type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+              - type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+          - name: waf_deny
+            config_discovery:
+              config_source:
+                path: /conf/waf_deny.yaml
+                resource_api_version: V3
+              apply_default_config_without_warming: true
+              default_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+              type_urls:
+              - type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+              - type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite
+          - name: envoy.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: httpbin
+  clusters:
+  - name: httpbin
+    connect_timeout: 30s
+    type: LOGICAL_DNS
+    # Comment out the following line to test on v6 networks
+    dns_lookup_family: V4_ONLY
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: httpbin
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: httpbin
+                port_value: 8080

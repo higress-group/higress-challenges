@@ -1,0 +1,19 @@
+resources: 
+- "@type": type.googleapis.com/envoy.config.core.v3.TypedExtensionConfig
+  name: cc_deny
+  typed_config:
+    "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+    type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+    value:
+      config:
+        name: cc_deny
+        vm_config:
+          runtime: envoy.wasm.runtime.v8
+          code:
+            local:
+              filename: /build/cc_deny.wasm
+          allow_precompiled: true
+        fail_open: true
+        configuration:
+          "@type": "type.googleapis.com/google.protobuf.StringValue"
+          value: {}
